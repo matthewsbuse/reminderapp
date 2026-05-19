@@ -341,7 +341,7 @@ body {
   min-height: 0;
 }
 
-/* White calendar cells */
+/* White calendar cells — shared base */
 .cal-cell {
   border-radius: 6px;
   display: flex;
@@ -364,31 +364,60 @@ body {
 .cal-cell.past { background: #efefef; color: #aaa; }
 .cal-cell.future { background: #f8f8f8; color: #ccc; }
 
-.cal-day-num {
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 1.2;
-  flex: 0 0 auto;
-}
+/* Month view — compact text */
+.cal-day-num { font-size: 10px; font-weight: 700; line-height: 1.2; flex: 0 0 auto; }
 .cal-obj-item {
-  font-size: 8px;
-  font-weight: 400;
-  line-height: 1.35;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-  flex: 0 0 auto;
-  color: #aaa;
+  font-size: 8px; font-weight: 400; line-height: 1.35;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: 100%; flex: 0 0 auto; color: #aaa;
 }
 .cal-cell.green .cal-obj-item { color: #5aaf5a; }
 .cal-cell.yellow .cal-obj-item { color: #b8960b; }
 .cal-cell.past .cal-obj-item { color: #ccc; }
-.cal-obj-item.done {
-  text-decoration: line-through;
-  color: inherit;
-  opacity: 0.75;
+.cal-obj-item.done { text-decoration: line-through; color: inherit; opacity: 0.75; }
+
+/* Week view — expanded rows */
+.cal-cell.week-cell {
+  padding: 6px 8px;
+  gap: 4px;
+  align-items: stretch;
 }
+.week-day-hdr {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  flex: 0 0 auto;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(0,0,0,0.09);
+}
+.week-day-name { font-size: 10px; font-weight: 700; text-transform: uppercase; opacity: 0.55; letter-spacing: 0.06em; }
+.week-day-num { font-size: 16px; font-weight: 800; line-height: 1; }
+.week-obj {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 0;
+  padding: 3px 6px;
+  border-radius: 5px;
+  background: rgba(0,0,0,0.04);
+  overflow: hidden;
+}
+.week-obj.done { background: rgba(0,0,0,0.06); }
+.week-check { font-size: 13px; flex: 0 0 auto; color: #4caf50; }
+.cal-cell.green .week-check { color: #2a7a2a; }
+.week-obj-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+.week-obj.done .week-obj-name { text-decoration: line-through; opacity: 0.55; }
+.week-streak { font-size: 12px; font-weight: 700; color: #e06a00; flex: 0 0 auto; white-space: nowrap; }
+.week-no-obj { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #ccc; font-style: italic; }
 
 #legend { display: flex; gap: 12px; flex: 0 0 auto; }
 .leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #555; }
@@ -557,11 +586,11 @@ function renderDateBar() {
 }
 
 // ── STREAK ──
-function getStreak(objId) {
+function getStreakAt(objId, asOf) {
   const obj = objectives.find(o => o.id === objId);
   if (!obj) return 0;
   let streak = 0;
-  const d = new Date(selectedDate);
+  const d = new Date(asOf);
   while (true) {
     const count = (data[dk(d)] || {})[objId] || 0;
     if (count >= obj.target) { streak++; d.setDate(d.getDate() - 1); }
@@ -569,6 +598,8 @@ function getStreak(objId) {
   }
   return streak;
 }
+
+function getStreak(objId) { return getStreakAt(objId, selectedDate); }
 
 // ── FOLDERS ──
 function addFolder() {
@@ -732,23 +763,55 @@ function dayStatus(ds) {
   return 'past';
 }
 
-function buildCellHTML(ds, dayNum) {
+function cellBaseClass(ds) {
   const st = dayStatus(ds);
   const todayStr = dk(new Date());
   let cls = 'cal-cell';
   if (st !== 'none') cls += ' ' + st;
   if (ds === todayStr) cls += ' today';
+  return cls;
+}
 
+function buildMonthCellHTML(ds, dayNum) {
   let inner = `<span class="cal-day-num">${dayNum}</span>`;
   if (objectives.length > 0) {
     const dd = data[ds] || {};
+    const todayStr = dk(new Date());
     const isFuture = ds > todayStr;
     objectives.forEach(o => {
       const done = !isFuture && (dd[o.id] || 0) >= o.target;
       inner += `<span class="cal-obj-item${done ? ' done' : ''}">${done ? '✓ ' : ''}${esc(o.name)}</span>`;
     });
   }
-  return `<div class="${cls}">${inner}</div>`;
+  return `<div class="${cellBaseClass(ds)}">${inner}</div>`;
+}
+
+function buildWeekCellHTML(ds, dayNum, dayOfWeek) {
+  const todayStr = dk(new Date());
+  const isFuture = ds > todayStr;
+  const dd = data[ds] || {};
+
+  let inner = `<div class="week-day-hdr">
+    <span class="week-day-name">${WK_NAMES[dayOfWeek]}</span>
+    <span class="week-day-num">${dayNum}</span>
+  </div>`;
+
+  if (objectives.length === 0) {
+    inner += `<div class="week-no-obj">Aucun objectif</div>`;
+  } else {
+    objectives.forEach(o => {
+      const c = dd[o.id] || 0;
+      const done = !isFuture && c >= o.target;
+      const streak = isFuture ? 0 : getStreakAt(o.id, new Date(ds));
+      inner +=
+        `<div class="week-obj${done ? ' done' : ''}">` +
+        (done ? `<span class="week-check">✓</span>` : '') +
+        `<span class="week-obj-name">${esc(o.name)}</span>` +
+        (streak > 0 ? `<span class="week-streak">🔥${streak}</span>` : '') +
+        `</div>`;
+    });
+  }
+  return `<div class="${cellBaseClass(ds)} week-cell">${inner}</div>`;
 }
 
 function setView(v) {
@@ -788,7 +851,7 @@ function renderCal() {
     for (let i = 0; i < offset; i++) html += '<div class="cal-cell empty"></div>';
     for (let d = 1; d <= total; d++) {
       const ds = calYear + '-' + String(calMonth+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
-      html += buildCellHTML(ds, d);
+      html += buildMonthCellHTML(ds, d);
     }
     daysEl.innerHTML = html;
 
@@ -803,7 +866,7 @@ function renderCal() {
     for (let i = 0; i < 7; i++) {
       const d = new Date(calWeekStart);
       d.setDate(d.getDate() + i);
-      html += buildCellHTML(dk(d), d.getDate());
+      html += buildWeekCellHTML(dk(d), d.getDate(), i);
     }
     daysEl.innerHTML = html;
   }
