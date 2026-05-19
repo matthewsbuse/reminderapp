@@ -190,6 +190,13 @@ body {
   display: flex; align-items: center; justify-content: center;
   flex: 0 0 auto;
 }
+.obj-streak {
+  font-size: 11px;
+  font-weight: 700;
+  color: #e06a00;
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
 .btn-del:hover { color: #f55; }
 
 #add-form { display: flex; gap: 5px; flex: 0 0 auto; }
@@ -429,6 +436,24 @@ function renderDateBar() {
     FR_DAYS[d.getDay()] + ' ' + d.getDate() + ' ' + FR_MONTHS[d.getMonth()] + ' ' + d.getFullYear();
 }
 
+function getStreak(objId) {
+  const obj = objectives.find(o => o.id === objId);
+  if (!obj) return 0;
+  let streak = 0;
+  const d = new Date(selectedDate);
+  while (true) {
+    const key = dk(d);
+    const count = (data[key] || {})[objId] || 0;
+    if (count >= obj.target) {
+      streak++;
+      d.setDate(d.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+  return streak;
+}
+
 function renderObjs() {
   const el = document.getElementById('obj-list');
   const key = dk(selectedDate);
@@ -441,10 +466,12 @@ function renderObjs() {
   objectives.forEach(o => {
     const c = dd[o.id] || 0;
     const done = c >= o.target;
+    const streak = getStreak(o.id);
     const row = document.createElement('div');
     row.className = 'obj-row';
     row.innerHTML =
       `<span class="obj-name">${esc(o.name)}</span>` +
+      (streak > 0 ? `<span class="obj-streak">🔥${streak}</span>` : '') +
       `<span class="obj-cnt${done ? ' done' : ''}">${c}&thinsp;/&thinsp;${o.target}</span>` +
       `<button class="btn-dec" onclick="dec('${o.id}')" title="Décrémenter">−</button>` +
       `<button class="btn-inc" onclick="inc('${o.id}')" title="Incrémenter">+</button>` +
