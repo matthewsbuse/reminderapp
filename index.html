@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Objectifs Quotidiens</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #111;
+  color: #ddd;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── LOGIN ── */
+#login {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 260px;
+  padding: 28px;
+  background: #1a1a1a;
+  border-radius: 12px;
+  border: 1px solid #252525;
+}
+#login h1 { font-size: 18px; font-weight: 600; text-align: center; color: #eee; margin-bottom: 4px; }
+#login input {
+  padding: 9px 12px;
+  background: #222;
+  border: 1px solid #2e2e2e;
+  border-radius: 6px;
+  color: #ddd;
+  font-size: 13px;
+  outline: none;
+  width: 100%;
+}
+#login input:focus { border-color: #4a9eff; }
+#login-err { font-size: 12px; color: #f55; text-align: center; display: none; }
+#login button {
+  padding: 9px;
+  background: #4a9eff;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+#login button:hover { background: #3a8eef; }
+
+/* ── APP ── */
+#app {
+  display: none;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  padding: 14px 16px;
+  gap: 10px;
+}
+
+/* Header */
+#hdr { display: flex; align-items: center; justify-content: space-between; flex: 0 0 auto; }
+#hdr-title { font-size: 15px; font-weight: 600; color: #fff; letter-spacing: -0.02em; }
+#hdr-logout { font-size: 12px; color: #555; background: none; border: none; cursor: pointer; }
+#hdr-logout:hover { color: #f55; }
+
+/* Date bar */
+#datebar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  background: #1a1a1a;
+  border: 1px solid #222;
+  border-radius: 8px;
+  padding: 7px 12px;
+}
+#date-disp { flex: 1; font-size: 13px; color: #ccc; font-weight: 500; }
+.btn-nav {
+  width: 26px; height: 26px;
+  background: #222;
+  border: 1px solid #2e2e2e;
+  border-radius: 5px;
+  color: #aaa;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.btn-nav:hover { background: #2a2a2a; color: #ddd; }
+.btn-today {
+  font-size: 11px;
+  padding: 3px 8px;
+  background: #1a3050;
+  border: none;
+  border-radius: 20px;
+  color: #4a9eff;
+  cursor: pointer;
+  font-weight: 500;
+}
+.btn-today:hover { background: #1e3a60; }
+
+/* Main content */
+#main { display: flex; gap: 12px; flex: 1; min-height: 0; }
+
+/* Panels */
+.panel {
+  background: #1a1a1a;
+  border: 1px solid #222;
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+}
+.panel-lbl {
+  font-size: 11px;
+  font-weight: 600;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  flex: 0 0 auto;
+}
+
+/* ── LEFT PANEL ── */
+#left { flex: 0 0 260px; }
+
+#obj-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}
+#obj-list::-webkit-scrollbar { width: 3px; }
+#obj-list::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
+
+.obj-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: #212121;
+  border-radius: 6px;
+  padding: 7px 9px;
+  flex: 0 0 auto;
+}
+.obj-name { flex: 1; font-size: 13px; color: #ccc; }
+.obj-cnt { font-size: 12px; font-variant-numeric: tabular-nums; color: #666; min-width: 40px; text-align: right; }
+.obj-cnt.done { color: #4caf50; }
+.btn-inc {
+  width: 26px; height: 26px;
+  background: #2a2a2a;
+  border: 1px solid #333;
+  border-radius: 5px;
+  color: #ccc;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+.btn-inc:hover { background: #333; }
+.btn-dec {
+  width: 26px; height: 26px;
+  background: #2a2a2a;
+  border: 1px solid #333;
+  border-radius: 5px;
+  color: #888;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  line-height: 1;
+  flex: 0 0 auto;
+}
+.btn-dec:hover { background: #333; }
+.btn-del {
+  width: 22px; height: 22px;
+  background: transparent;
+  border: none;
+  color: #3a3a3a;
+  font-size: 15px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex: 0 0 auto;
+}
+.btn-del:hover { color: #f55; }
+
+#add-form { display: flex; gap: 5px; flex: 0 0 auto; }
+#add-form input {
+  padding: 6px 9px;
+  background: #222;
+  border: 1px solid #2e2e2e;
+  border-radius: 5px;
+  color: #ddd;
+  font-size: 12px;
+  outline: none;
+}
+#add-form input:focus { border-color: #4a9eff; }
+#inp-name { flex: 1; }
+#inp-target { width: 56px; }
+#btn-add {
+  padding: 6px 12px;
+  background: #4a9eff;
+  border: none;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+#btn-add:hover { background: #3a8eef; }
+
+/* ── RIGHT PANEL: CALENDAR ── */
+#right { flex: 1; }
+
+#cal-hdr { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+#cal-month-lbl { flex: 1; text-align: center; font-size: 14px; font-weight: 500; color: #ddd; }
+
+#cal-wk {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  flex: 0 0 auto;
+}
+.wk-lbl {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 600;
+  color: #444;
+  text-transform: uppercase;
+  padding: 2px 0;
+}
+
+#cal-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: 1fr;
+  gap: 4px;
+  flex: 1;
+  min-height: 0;
+}
+
+.cal-cell {
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 500;
+  background: #1e1e1e;
+  color: #3a3a3a;
+  user-select: none;
+}
+.cal-cell.empty { background: transparent; }
+.cal-cell.today { outline: 2px solid #4a9eff; outline-offset: -2px; color: #4a9eff; }
+.cal-cell.green { background: #192e19; color: #4caf50; }
+.cal-cell.green.today { outline-color: #4caf50; }
+.cal-cell.yellow { background: #2e2610; color: #e0a820; }
+.cal-cell.yellow.today { outline-color: #e0a820; }
+.cal-cell.past { background: #1a1a1a; color: #2e2e2e; }
+.cal-cell.future { background: #1e1e1e; color: #2e2e2e; }
+
+#legend { display: flex; gap: 12px; flex: 0 0 auto; }
+.leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #555; }
+.leg-dot { width: 8px; height: 8px; border-radius: 50%; }
+.leg-dot.green { background: #4caf50; }
+.leg-dot.yellow { background: #e0a820; }
+.leg-dot.past { background: #2a2a2a; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login">
+  <h1>Objectifs</h1>
+  <input id="inp-user" type="text" placeholder="Utilisateur" autocomplete="off">
+  <input id="inp-pass" type="password" placeholder="Mot de passe">
+  <div id="login-err">Identifiants incorrects</div>
+  <button onclick="login()">Connexion</button>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div id="hdr">
+    <span id="hdr-title">Objectifs Quotidiens</span>
+    <button id="hdr-logout" onclick="logout()">Déconnexion</button>
+  </div>
+
+  <div id="datebar">
+    <button class="btn-nav" onclick="shiftDay(-1)">&#8592;</button>
+    <span id="date-disp"></span>
+    <button class="btn-nav" onclick="shiftDay(1)">&#8594;</button>
+    <button class="btn-today" onclick="goToday()">Aujourd'hui</button>
+  </div>
+
+  <div id="main">
+    <div class="panel" id="left">
+      <div class="panel-lbl">Objectifs du jour</div>
+      <div id="obj-list"></div>
+      <div id="add-form">
+        <input id="inp-name" type="text" placeholder="Nom de l'objectif…">
+        <input id="inp-target" type="number" placeholder="Cible" min="1" value="1">
+        <button id="btn-add" onclick="addObj()">+</button>
+      </div>
+    </div>
+
+    <div class="panel" id="right">
+      <div id="cal-hdr">
+        <button class="btn-nav" onclick="shiftMonth(-1)">&#8592;</button>
+        <span id="cal-month-lbl"></span>
+        <button class="btn-nav" onclick="shiftMonth(1)">&#8594;</button>
+      </div>
+      <div id="cal-wk"></div>
+      <div id="cal-days"></div>
+      <div id="legend">
+        <div class="leg-item"><div class="leg-dot green"></div>Tous complétés</div>
+        <div class="leg-item"><div class="leg-dot yellow"></div>Partiel</div>
+        <div class="leg-item"><div class="leg-dot past"></div>Manqué</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const AUTH = { user: 'admin', pass: 'admin' };
+
+let selectedDate = new Date();
+let calYear = selectedDate.getFullYear();
+let calMonth = selectedDate.getMonth();
+let objectives = [];
+let data = {};
+
+const FR_DAYS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+const FR_MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
+
+function dk(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function save() {
+  localStorage.setItem('obj', JSON.stringify(objectives));
+  localStorage.setItem('dat', JSON.stringify(data));
+}
+
+function load() {
+  objectives = JSON.parse(localStorage.getItem('obj') || '[]');
+  data = JSON.parse(localStorage.getItem('dat') || '{}');
+}
+
+function login() {
+  const u = document.getElementById('inp-user').value;
+  const p = document.getElementById('inp-pass').value;
+  if (u === AUTH.user && p === AUTH.pass) {
+    document.getElementById('login').style.display = 'none';
+    const app = document.getElementById('app');
+    app.style.display = 'flex';
+    load();
+    selectedDate = new Date();
+    calYear = selectedDate.getFullYear();
+    calMonth = selectedDate.getMonth();
+    render();
+  } else {
+    document.getElementById('login-err').style.display = 'block';
+  }
+}
+
+function logout() {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login').style.display = 'flex';
+  document.getElementById('inp-user').value = '';
+  document.getElementById('inp-pass').value = '';
+  document.getElementById('login-err').style.display = 'none';
+}
+
+document.getElementById('inp-pass').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+document.getElementById('inp-user').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('inp-pass').focus(); });
+
+function shiftDay(d) {
+  const nd = new Date(selectedDate);
+  nd.setDate(nd.getDate() + d);
+  selectedDate = nd;
+  render();
+}
+
+function goToday() {
+  selectedDate = new Date();
+  calYear = selectedDate.getFullYear();
+  calMonth = selectedDate.getMonth();
+  render();
+}
+
+function renderDateBar() {
+  const d = selectedDate;
+  document.getElementById('date-disp').textContent =
+    FR_DAYS[d.getDay()] + ' ' + d.getDate() + ' ' + FR_MONTHS[d.getMonth()] + ' ' + d.getFullYear();
+}
+
+function renderObjs() {
+  const el = document.getElementById('obj-list');
+  const key = dk(selectedDate);
+  const dd = data[key] || {};
+  if (!objectives.length) {
+    el.innerHTML = '<div style="font-size:12px;color:#3a3a3a;text-align:center;padding:24px 0;">Aucun objectif.<br>Ajoutez-en un !</div>';
+    return;
+  }
+  el.innerHTML = '';
+  objectives.forEach(o => {
+    const c = dd[o.id] || 0;
+    const done = c >= o.target;
+    const row = document.createElement('div');
+    row.className = 'obj-row';
+    row.innerHTML =
+      `<span class="obj-name">${esc(o.name)}</span>` +
+      `<span class="obj-cnt${done ? ' done' : ''}">${c}&thinsp;/&thinsp;${o.target}</span>` +
+      `<button class="btn-dec" onclick="dec('${o.id}')" title="Décrémenter">−</button>` +
+      `<button class="btn-inc" onclick="inc('${o.id}')" title="Incrémenter">+</button>` +
+      `<button class="btn-del" onclick="delObj('${o.id}')" title="Supprimer">×</button>`;
+    el.appendChild(row);
+  });
+}
+
+function inc(id) {
+  const key = dk(selectedDate);
+  if (!data[key]) data[key] = {};
+  data[key][id] = (data[key][id] || 0) + 1;
+  save(); render();
+}
+
+function dec(id) {
+  const key = dk(selectedDate);
+  if (!data[key]) data[key] = {};
+  data[key][id] = Math.max(0, (data[key][id] || 0) - 1);
+  save(); render();
+}
+
+function addObj() {
+  const n = document.getElementById('inp-name').value.trim();
+  const t = Math.max(1, parseInt(document.getElementById('inp-target').value) || 1);
+  if (!n) return;
+  objectives.push({ id: Date.now().toString(), name: n, target: t });
+  document.getElementById('inp-name').value = '';
+  document.getElementById('inp-target').value = '1';
+  save(); render();
+}
+
+function delObj(id) {
+  if (!confirm('Supprimer cet objectif ?')) return;
+  objectives = objectives.filter(o => o.id !== id);
+  Object.values(data).forEach(d => delete d[id]);
+  save(); render();
+}
+
+document.getElementById('inp-name').addEventListener('keydown', e => { if (e.key === 'Enter') addObj(); });
+
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function dayStatus(ds) {
+  const today = dk(new Date());
+  if (ds > today) return 'future';
+  if (!objectives.length) return 'none';
+  const dd = data[ds] || {};
+  let met = 0;
+  objectives.forEach(o => { if ((dd[o.id] || 0) >= o.target) met++; });
+  if (met === objectives.length) return 'green';
+  if (met > 0) return 'yellow';
+  return 'past';
+}
+
+function shiftMonth(d) {
+  calMonth += d;
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  renderCal();
+}
+
+function renderCal() {
+  document.getElementById('cal-month-lbl').textContent = FR_MONTHS[calMonth] + ' ' + calYear;
+
+  const wkEl = document.getElementById('cal-wk');
+  wkEl.innerHTML = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim']
+    .map(w => `<div class="wk-lbl">${w}</div>`).join('');
+
+  const daysEl = document.getElementById('cal-days');
+  const first = new Date(calYear, calMonth, 1);
+  let offset = first.getDay();
+  offset = offset === 0 ? 6 : offset - 1;
+
+  const total = new Date(calYear, calMonth + 1, 0).getDate();
+  const todayStr = dk(new Date());
+  let html = '';
+
+  for (let i = 0; i < offset; i++) html += '<div class="cal-cell empty"></div>';
+
+  for (let d = 1; d <= total; d++) {
+    const ds = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const st = dayStatus(ds);
+    let cls = 'cal-cell';
+    if (st !== 'none') cls += ' ' + st;
+    if (ds === todayStr) cls += ' today';
+    html += `<div class="${cls}">${d}</div>`;
+  }
+
+  daysEl.innerHTML = html;
+}
+
+function render() {
+  renderDateBar();
+  renderObjs();
+  renderCal();
+}
+</script>
+</body>
+</html>
