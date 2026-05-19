@@ -128,7 +128,7 @@ body {
 }
 
 /* ── LEFT PANEL ── */
-#left { flex: 0 0 270px; }
+#left { flex: 0 0 310px; }
 
 #left-top {
   display: flex;
@@ -187,6 +187,18 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.07em;
 }
+.btn-toggle {
+  background: none;
+  border: none;
+  color: #444;
+  cursor: pointer;
+  font-size: 9px;
+  padding: 0 3px;
+  line-height: 1;
+  flex: 0 0 auto;
+  transition: color 0.15s;
+}
+.btn-toggle:hover { color: #aaa; }
 .btn-folder-add {
   background: none;
   border: none;
@@ -510,6 +522,7 @@ let objectives = [];
 let folders = [];
 let data = {};
 let dragObjId = null;
+const collapsedFolders = new Set();
 
 const FR_DAYS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
 const FR_MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
@@ -636,6 +649,12 @@ function delFolder(id) {
   renderObjs();
 }
 
+function toggleFolder(id) {
+  if (collapsedFolders.has(id)) collapsedFolders.delete(id);
+  else collapsedFolders.add(id);
+  renderObjs();
+}
+
 function dropToFolder(folderId) {
   if (!dragObjId) return;
   const obj = objectives.find(o => o.id === dragObjId);
@@ -674,6 +693,9 @@ function makeObjRow(o, dd) {
 }
 
 function makeFolderNode(folderId, label, icon, depth, canDelete, dd) {
+  const collapsed = collapsedFolders.has(folderId === null ? '__root__' : folderId);
+  const colKey = folderId === null ? '__root__' : folderId;
+
   const section = document.createElement('div');
   section.className = 'folder-section';
   if (depth > 0) section.style.marginLeft = (depth * 10) + 'px';
@@ -686,32 +708,33 @@ function makeFolderNode(folderId, label, icon, depth, canDelete, dd) {
   const hdr = document.createElement('div');
   hdr.className = 'folder-header';
   hdr.innerHTML =
+    `<button class="btn-toggle" onclick="toggleFolder('${colKey}')">${collapsed ? '▶' : '▼'}</button>` +
     `<span class="folder-icon">${icon}</span>` +
     `<span class="folder-name">${esc(label)}</span>` +
     (folderId !== null ? `<button class="btn-folder-add" onclick="addFolder('${folderId}')" title="Sous-dossier">+</button>` : '') +
     (canDelete ? `<button class="btn-folder-del" onclick="delFolder('${folderId}')">×</button>` : '');
   section.appendChild(hdr);
 
-  // Objectives in this folder
-  const folderObjs = folderId === null
-    ? objectives.filter(o => !o.folderId)
-    : objectives.filter(o => o.folderId === folderId);
-  const subFolders = folders.filter(f => f.parentId === folderId);
+  if (!collapsed) {
+    const folderObjs = folderId === null
+      ? objectives.filter(o => !o.folderId)
+      : objectives.filter(o => o.folderId === folderId);
+    const subFolders = folders.filter(f => f.parentId === folderId);
 
-  const objsEl = document.createElement('div');
-  objsEl.className = 'folder-objs';
-  if (folderObjs.length === 0 && subFolders.length === 0) {
-    const empty = document.createElement('div');
-    empty.className = 'folder-empty';
-    empty.textContent = 'Glisser un objectif ici';
-    objsEl.appendChild(empty);
-  } else {
-    folderObjs.forEach(o => objsEl.appendChild(makeObjRow(o, dd)));
+    const objsEl = document.createElement('div');
+    objsEl.className = 'folder-objs';
+    if (folderObjs.length === 0 && subFolders.length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'folder-empty';
+      empty.textContent = 'Glisser un objectif ici';
+      objsEl.appendChild(empty);
+    } else {
+      folderObjs.forEach(o => objsEl.appendChild(makeObjRow(o, dd)));
+    }
+    section.appendChild(objsEl);
+
+    subFolders.forEach(sf => section.appendChild(makeFolderNode(sf.id, sf.name, '📁', depth + 1, true, dd)));
   }
-  section.appendChild(objsEl);
-
-  // Recursive sub-folders
-  subFolders.forEach(sf => section.appendChild(makeFolderNode(sf.id, sf.name, '📁', depth + 1, true, dd)));
 
   return section;
 }
