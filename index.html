@@ -125,68 +125,138 @@ body {
   color: #555;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  flex: 0 0 auto;
 }
 
 /* ── LEFT PANEL ── */
-#left { flex: 0 0 260px; }
+#left { flex: 0 0 270px; }
+
+#left-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 0 0 auto;
+}
+.btn-add-folder {
+  font-size: 12px;
+  padding: 3px 8px;
+  background: #222;
+  border: 1px solid #2e2e2e;
+  border-radius: 5px;
+  color: #666;
+  cursor: pointer;
+}
+.btn-add-folder:hover { color: #aaa; background: #2a2a2a; }
 
 #obj-list {
   flex: 1;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   min-height: 0;
 }
 #obj-list::-webkit-scrollbar { width: 3px; }
 #obj-list::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
 
+/* Folder sections */
+.folder-section {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border-radius: 6px;
+  border: 1.5px dashed transparent;
+  padding: 3px;
+  transition: border-color 0.15s, background 0.15s;
+}
+.folder-section.drag-over {
+  border-color: #4a9eff;
+  background: #131d2a;
+}
+.folder-header {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 6px 4px 2px;
+}
+.folder-icon { font-size: 12px; }
+.folder-name {
+  flex: 1;
+  font-size: 10px;
+  font-weight: 700;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+.btn-folder-del {
+  background: none;
+  border: none;
+  color: #3a3a3a;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0 2px;
+  line-height: 1;
+}
+.btn-folder-del:hover { color: #f55; }
+
+.folder-objs {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding-left: 6px;
+}
+.folder-empty {
+  font-size: 11px;
+  color: #333;
+  padding: 5px 8px;
+  font-style: italic;
+  border-radius: 4px;
+  border: 1px dashed #252525;
+  text-align: center;
+}
+
 .obj-row {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   background: #212121;
   border-radius: 6px;
-  padding: 7px 9px;
+  padding: 7px 8px;
   flex: 0 0 auto;
+  cursor: default;
 }
-.obj-name { flex: 1; font-size: 13px; color: #ccc; }
+.obj-row.dragging { opacity: 0.4; }
+.drag-handle {
+  color: #333;
+  font-size: 13px;
+  cursor: grab;
+  flex: 0 0 auto;
+  line-height: 1;
+  user-select: none;
+}
+.drag-handle:hover { color: #555; }
+.obj-name { flex: 1; font-size: 12px; color: #ccc; }
 .obj-streak { font-size: 11px; font-weight: 700; color: #e06a00; flex: 0 0 auto; white-space: nowrap; }
-.obj-cnt { font-size: 12px; font-variant-numeric: tabular-nums; color: #666; min-width: 40px; text-align: right; }
+.obj-cnt { font-size: 11px; font-variant-numeric: tabular-nums; color: #555; min-width: 36px; text-align: right; flex: 0 0 auto; }
 .obj-cnt.done { color: #4caf50; }
-.btn-inc {
-  width: 26px; height: 26px;
+.btn-inc, .btn-dec {
+  width: 24px; height: 24px;
   background: #2a2a2a;
   border: 1px solid #333;
-  border-radius: 5px;
-  color: #ccc;
-  font-size: 16px;
+  border-radius: 4px;
+  color: #999;
+  font-size: 15px;
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   line-height: 1;
   flex: 0 0 auto;
 }
-.btn-inc:hover { background: #333; }
-.btn-dec {
-  width: 26px; height: 26px;
-  background: #2a2a2a;
-  border: 1px solid #333;
-  border-radius: 5px;
-  color: #888;
-  font-size: 16px;
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
-  line-height: 1;
-  flex: 0 0 auto;
-}
-.btn-dec:hover { background: #333; }
+.btn-inc:hover, .btn-dec:hover { background: #333; color: #ddd; }
 .btn-del {
-  width: 22px; height: 22px;
+  width: 20px; height: 20px;
   background: transparent;
   border: none;
   color: #3a3a3a;
-  font-size: 15px;
+  font-size: 14px;
   cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   flex: 0 0 auto;
@@ -205,7 +275,7 @@ body {
 }
 #add-form input:focus { border-color: #4a9eff; }
 #inp-name { flex: 1; }
-#inp-target { width: 56px; }
+#inp-target { width: 52px; }
 #btn-add {
   padding: 6px 12px;
   background: #4a9eff;
@@ -225,7 +295,6 @@ body {
 #cal-hdr { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
 #cal-period-lbl { flex: 1; text-align: center; font-size: 14px; font-weight: 500; color: #ddd; }
 
-/* View toggle */
 #view-toggle {
   display: flex;
   background: #222;
@@ -245,10 +314,7 @@ body {
   background: transparent;
   color: #555;
 }
-.btn-view.active {
-  background: #333;
-  color: #ddd;
-}
+.btn-view.active { background: #333; color: #ddd; }
 .btn-view:hover:not(.active) { color: #aaa; }
 
 #cal-wk {
@@ -288,7 +354,6 @@ body {
   overflow: hidden;
   gap: 2px;
   min-height: 0;
-  cursor: default;
 }
 .cal-cell.empty { background: transparent; }
 .cal-cell.today { outline: 2px solid #4a9eff; outline-offset: -2px; }
@@ -297,7 +362,7 @@ body {
 .cal-cell.yellow { background: #fff8e1; color: #8a6000; }
 .cal-cell.yellow.today { outline-color: #f0a000; }
 .cal-cell.past { background: #efefef; color: #aaa; }
-.cal-cell.future { background: #f8f8f8; color: #bbb; }
+.cal-cell.future { background: #f8f8f8; color: #ccc; }
 
 .cal-day-num {
   font-size: 10px;
@@ -314,14 +379,15 @@ body {
   text-overflow: ellipsis;
   max-width: 100%;
   flex: 0 0 auto;
-  color: #999;
+  color: #aaa;
 }
-.cal-cell.green .cal-obj-item { color: #4caf50; opacity: 0.7; }
-.cal-cell.yellow .cal-obj-item { color: #b8860b; opacity: 0.8; }
+.cal-cell.green .cal-obj-item { color: #5aaf5a; }
+.cal-cell.yellow .cal-obj-item { color: #b8960b; }
+.cal-cell.past .cal-obj-item { color: #ccc; }
 .cal-obj-item.done {
   text-decoration: line-through;
-  opacity: 1;
   color: inherit;
+  opacity: 0.75;
 }
 
 #legend { display: flex; gap: 12px; flex: 0 0 auto; }
@@ -359,7 +425,10 @@ body {
 
   <div id="main">
     <div class="panel" id="left">
-      <div class="panel-lbl">Objectifs du jour</div>
+      <div id="left-top">
+        <div class="panel-lbl">Objectifs du jour</div>
+        <button class="btn-add-folder" onclick="addFolder()">📁 Dossier</button>
+      </div>
       <div id="obj-list"></div>
       <div id="add-form">
         <input id="inp-name" type="text" placeholder="Nom de l'objectif…">
@@ -398,17 +467,18 @@ let calMonth = selectedDate.getMonth();
 let calView = 'month';
 let calWeekStart = getMonday(new Date());
 let objectives = [];
+let folders = [];
 let data = {};
+let dragObjId = null;
 
 const FR_DAYS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
 const FR_MONTHS = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
 const WK_NAMES = ['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'];
 
 function dk(d) {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+  return d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0');
 }
 
 function getMonday(d) {
@@ -419,23 +489,29 @@ function getMonday(d) {
   return mon;
 }
 
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 function save() {
   localStorage.setItem('obj', JSON.stringify(objectives));
   localStorage.setItem('dat', JSON.stringify(data));
+  localStorage.setItem('folders', JSON.stringify(folders));
 }
 
 function load() {
   objectives = JSON.parse(localStorage.getItem('obj') || '[]');
   data = JSON.parse(localStorage.getItem('dat') || '{}');
+  folders = JSON.parse(localStorage.getItem('folders') || '[]');
 }
 
+// ── AUTH ──
 function login() {
   const u = document.getElementById('inp-user').value;
   const p = document.getElementById('inp-pass').value;
   if (u === AUTH.user && p === AUTH.pass) {
     document.getElementById('login').style.display = 'none';
-    const app = document.getElementById('app');
-    app.style.display = 'flex';
+    document.getElementById('app').style.display = 'flex';
     load();
     selectedDate = new Date();
     calYear = selectedDate.getFullYear();
@@ -458,6 +534,7 @@ function logout() {
 document.getElementById('inp-pass').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
 document.getElementById('inp-user').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('inp-pass').focus(); });
 
+// ── DATE ──
 function shiftDay(d) {
   const nd = new Date(selectedDate);
   nd.setDate(nd.getDate() + d);
@@ -473,32 +550,13 @@ function goToday() {
   render();
 }
 
-function setView(v) {
-  calView = v;
-  if (v === 'week') calWeekStart = getMonday(selectedDate);
-  document.getElementById('btn-mois').classList.toggle('active', v === 'month');
-  document.getElementById('btn-sem').classList.toggle('active', v === 'week');
-  renderCal();
-}
-
-function shiftCal(dir) {
-  if (calView === 'month') {
-    calMonth += dir;
-    if (calMonth < 0) { calMonth = 11; calYear--; }
-    if (calMonth > 11) { calMonth = 0; calYear++; }
-  } else {
-    calWeekStart = new Date(calWeekStart);
-    calWeekStart.setDate(calWeekStart.getDate() + dir * 7);
-  }
-  renderCal();
-}
-
 function renderDateBar() {
   const d = selectedDate;
   document.getElementById('date-disp').textContent =
     FR_DAYS[d.getDay()] + ' ' + d.getDate() + ' ' + FR_MONTHS[d.getMonth()] + ' ' + d.getFullYear();
 }
 
+// ── STREAK ──
 function getStreak(objId) {
   const obj = objectives.find(o => o.id === objId);
   if (!obj) return 0;
@@ -512,29 +570,119 @@ function getStreak(objId) {
   return streak;
 }
 
+// ── FOLDERS ──
+function addFolder() {
+  const name = prompt('Nom du dossier :');
+  if (!name || !name.trim()) return;
+  folders.push({ id: Date.now().toString(), name: name.trim() });
+  save();
+  renderObjs();
+}
+
+function delFolder(id) {
+  if (!confirm('Supprimer ce dossier ? Les objectifs seront déplacés dans "Sans dossier".')) return;
+  folders = folders.filter(f => f.id !== id);
+  objectives.forEach(o => { if (o.folderId === id) o.folderId = null; });
+  save();
+  renderObjs();
+}
+
+function dropToFolder(folderId) {
+  if (!dragObjId) return;
+  const obj = objectives.find(o => o.id === dragObjId);
+  if (obj) obj.folderId = folderId || null;
+  dragObjId = null;
+  save();
+  renderObjs();
+}
+
+// ── OBJECTIVES ──
+function makeObjRow(o, dd) {
+  const c = dd[o.id] || 0;
+  const done = c >= o.target;
+  const streak = getStreak(o.id);
+  const row = document.createElement('div');
+  row.className = 'obj-row';
+  row.draggable = true;
+  row.dataset.id = o.id;
+
+  row.addEventListener('dragstart', e => {
+    dragObjId = o.id;
+    e.dataTransfer.effectAllowed = 'move';
+    setTimeout(() => row.classList.add('dragging'), 0);
+  });
+  row.addEventListener('dragend', () => row.classList.remove('dragging'));
+
+  row.innerHTML =
+    `<span class="drag-handle">⠿</span>` +
+    `<span class="obj-name">${esc(o.name)}</span>` +
+    (streak > 0 ? `<span class="obj-streak">🔥${streak}</span>` : '') +
+    `<span class="obj-cnt${done ? ' done' : ''}">${c}&thinsp;/&thinsp;${o.target}</span>` +
+    `<button class="btn-dec" onclick="dec('${o.id}')">−</button>` +
+    `<button class="btn-inc" onclick="inc('${o.id}')">+</button>` +
+    `<button class="btn-del" onclick="delObj('${o.id}')">×</button>`;
+  return row;
+}
+
+function makeFolderSection(folderId, label, icon, objs, dd, canDelete) {
+  const section = document.createElement('div');
+  section.className = 'folder-section';
+
+  // Drop zone handlers on the whole section
+  section.addEventListener('dragover', e => { e.preventDefault(); section.classList.add('drag-over'); });
+  section.addEventListener('dragleave', e => {
+    if (!section.contains(e.relatedTarget)) section.classList.remove('drag-over');
+  });
+  section.addEventListener('drop', e => {
+    e.preventDefault();
+    section.classList.remove('drag-over');
+    dropToFolder(folderId);
+  });
+
+  // Header
+  const hdr = document.createElement('div');
+  hdr.className = 'folder-header';
+  hdr.innerHTML =
+    `<span class="folder-icon">${icon}</span>` +
+    `<span class="folder-name">${esc(label)}</span>` +
+    (canDelete ? `<button class="btn-folder-del" onclick="delFolder('${folderId}')">×</button>` : '');
+  section.appendChild(hdr);
+
+  // Objectives inside
+  const objsEl = document.createElement('div');
+  objsEl.className = 'folder-objs';
+  if (objs.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'folder-empty';
+    empty.textContent = 'Glisser un objectif ici';
+    objsEl.appendChild(empty);
+  } else {
+    objs.forEach(o => objsEl.appendChild(makeObjRow(o, dd)));
+  }
+  section.appendChild(objsEl);
+  return section;
+}
+
 function renderObjs() {
   const el = document.getElementById('obj-list');
   const key = dk(selectedDate);
   const dd = data[key] || {};
-  if (!objectives.length) {
+  el.innerHTML = '';
+
+  if (objectives.length === 0) {
     el.innerHTML = '<div style="font-size:12px;color:#3a3a3a;text-align:center;padding:24px 0;">Aucun objectif.<br>Ajoutez-en un !</div>';
     return;
   }
-  el.innerHTML = '';
-  objectives.forEach(o => {
-    const c = dd[o.id] || 0;
-    const done = c >= o.target;
-    const streak = getStreak(o.id);
-    const row = document.createElement('div');
-    row.className = 'obj-row';
-    row.innerHTML =
-      `<span class="obj-name">${esc(o.name)}</span>` +
-      (streak > 0 ? `<span class="obj-streak">🔥${streak}</span>` : '') +
-      `<span class="obj-cnt${done ? ' done' : ''}">${c}&thinsp;/&thinsp;${o.target}</span>` +
-      `<button class="btn-dec" onclick="dec('${o.id}')" title="Décrémenter">−</button>` +
-      `<button class="btn-inc" onclick="inc('${o.id}')" title="Incrémenter">+</button>` +
-      `<button class="btn-del" onclick="delObj('${o.id}')" title="Supprimer">×</button>`;
-    el.appendChild(row);
+
+  const unfoldered = objectives.filter(o => !o.folderId);
+  // Show "Sans dossier" only if there are items or no folders exist
+  if (unfoldered.length > 0 || folders.length === 0) {
+    el.appendChild(makeFolderSection(null, 'Sans dossier', '📄', unfoldered, dd, false));
+  }
+
+  folders.forEach(f => {
+    const folderObjs = objectives.filter(o => o.folderId === f.id);
+    el.appendChild(makeFolderSection(f.id, f.name, '📁', folderObjs, dd, true));
   });
 }
 
@@ -556,7 +704,7 @@ function addObj() {
   const n = document.getElementById('inp-name').value.trim();
   const t = Math.max(1, parseInt(document.getElementById('inp-target').value) || 1);
   if (!n) return;
-  objectives.push({ id: Date.now().toString(), name: n, target: t });
+  objectives.push({ id: Date.now().toString(), name: n, target: t, folderId: null });
   document.getElementById('inp-name').value = '';
   document.getElementById('inp-target').value = '1';
   save(); render();
@@ -571,10 +719,7 @@ function delObj(id) {
 
 document.getElementById('inp-name').addEventListener('keydown', e => { if (e.key === 'Enter') addObj(); });
 
-function esc(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
+// ── CALENDAR ──
 function dayStatus(ds) {
   const today = dk(new Date());
   if (ds > today) return 'future';
@@ -599,13 +744,31 @@ function buildCellHTML(ds, dayNum) {
     const dd = data[ds] || {};
     const isFuture = ds > todayStr;
     objectives.forEach(o => {
-      const c = dd[o.id] || 0;
-      const done = !isFuture && c >= o.target;
-      const prefix = done ? '✓ ' : '';
-      inner += `<span class="cal-obj-item${done ? ' done' : ''}">${prefix}${esc(o.name)}</span>`;
+      const done = !isFuture && (dd[o.id] || 0) >= o.target;
+      inner += `<span class="cal-obj-item${done ? ' done' : ''}">${done ? '✓ ' : ''}${esc(o.name)}</span>`;
     });
   }
   return `<div class="${cls}">${inner}</div>`;
+}
+
+function setView(v) {
+  calView = v;
+  if (v === 'week') calWeekStart = getMonday(selectedDate);
+  document.getElementById('btn-mois').classList.toggle('active', v === 'month');
+  document.getElementById('btn-sem').classList.toggle('active', v === 'week');
+  renderCal();
+}
+
+function shiftCal(dir) {
+  if (calView === 'month') {
+    calMonth += dir;
+    if (calMonth < 0) { calMonth = 11; calYear--; }
+    if (calMonth > 11) { calMonth = 0; calYear++; }
+  } else {
+    calWeekStart = new Date(calWeekStart);
+    calWeekStart.setDate(calWeekStart.getDate() + dir * 7);
+  }
+  renderCal();
 }
 
 function renderCal() {
@@ -624,18 +787,17 @@ function renderCal() {
     let html = '';
     for (let i = 0; i < offset; i++) html += '<div class="cal-cell empty"></div>';
     for (let d = 1; d <= total; d++) {
-      const ds = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+      const ds = calYear + '-' + String(calMonth+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
       html += buildCellHTML(ds, d);
     }
     daysEl.innerHTML = html;
 
   } else {
-    // Week view
     const weekEnd = new Date(calWeekStart);
     weekEnd.setDate(weekEnd.getDate() + 6);
-    const startLabel = calWeekStart.getDate() + ' ' + FR_MONTHS[calWeekStart.getMonth()];
-    const endLabel = weekEnd.getDate() + ' ' + FR_MONTHS[weekEnd.getMonth()] + ' ' + weekEnd.getFullYear();
-    document.getElementById('cal-period-lbl').textContent = startLabel + ' – ' + endLabel;
+    document.getElementById('cal-period-lbl').textContent =
+      calWeekStart.getDate() + ' ' + FR_MONTHS[calWeekStart.getMonth()] +
+      ' – ' + weekEnd.getDate() + ' ' + FR_MONTHS[weekEnd.getMonth()] + ' ' + weekEnd.getFullYear();
 
     let html = '';
     for (let i = 0; i < 7; i++) {
