@@ -172,6 +172,16 @@ body {
   border-color: #4a9eff;
   background: #131d2a;
 }
+.unfoldered-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 3px;
+  border-radius: 6px;
+  border: 1.5px dashed transparent;
+  transition: border-color 0.15s, background 0.15s;
+}
+.unfoldered-zone.drag-over { border-color: #4a9eff; background: #131d2a; }
 .folder-header {
   display: flex;
   align-items: center;
@@ -848,15 +858,26 @@ function renderObjs() {
     return;
   }
 
-  const unfoldered = objectives.filter(o => !o.folderId);
-  if (unfoldered.length > 0 || folders.length === 0) {
+  if (folders.length === 0) {
+    // No named folders — show everything in "Sans dossier"
     el.appendChild(makeFolderNode(null, 'Sans dossier', '📄', 0, false, dd));
+  } else {
+    // Named folders exist: show unfoldered objectives as plain rows (drop zone, no header)
+    const unfoldered = objectives.filter(o => !o.folderId);
+    if (unfoldered.length > 0) {
+      const zone = document.createElement('div');
+      zone.className = 'unfoldered-zone';
+      zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+      zone.addEventListener('dragleave', e => { if (!zone.contains(e.relatedTarget)) zone.classList.remove('drag-over'); });
+      zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag-over'); dropToFolder(null); });
+      unfoldered.forEach(o => zone.appendChild(makeObjRow(o, dd)));
+      el.appendChild(zone);
+    }
+    // Root folders only — children render recursively inside makeFolderNode
+    folders.filter(f => !f.parentId).forEach(f =>
+      el.appendChild(makeFolderNode(f.id, f.name, '📁', 0, true, dd))
+    );
   }
-
-  // Render only root folders (parentId = null); children render recursively
-  folders.filter(f => !f.parentId).forEach(f =>
-    el.appendChild(makeFolderNode(f.id, f.name, '📁', 0, true, dd))
-  );
 }
 
 function inc(id) {
