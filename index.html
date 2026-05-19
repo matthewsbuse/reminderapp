@@ -399,12 +399,8 @@ body {
 .cal-cell.past .cal-obj-item { color: #ccc; }
 .cal-obj-item.done { text-decoration: line-through; color: inherit; opacity: 0.75; }
 
-/* Week view — expanded rows */
-.cal-cell.week-cell {
-  padding: 6px 8px;
-  gap: 4px;
-  align-items: stretch;
-}
+/* Week view — two-column scrollable */
+.cal-cell.week-cell { padding: 6px 6px 4px; gap: 5px; align-items: stretch; }
 .week-day-hdr {
   display: flex;
   align-items: baseline;
@@ -415,32 +411,102 @@ body {
 }
 .week-day-name { font-size: 10px; font-weight: 700; text-transform: uppercase; opacity: 0.55; letter-spacing: 0.06em; }
 .week-day-num { font-size: 16px; font-weight: 800; line-height: 1; }
-.week-obj {
+
+.week-cols {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  gap: 0;
+}
+.week-cols::-webkit-scrollbar { width: 3px; }
+.week-cols::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.12); border-radius: 2px; }
+
+.week-col {
   flex: 1;
   display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 2px 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+.week-col-sep {
+  width: 1px;
+  background: rgba(0,0,0,0.1);
+  flex: 0 0 auto;
+  align-self: stretch;
+  margin: 0 2px;
+}
+.week-col-hdr {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.45;
+  padding: 1px 2px 3px;
+  flex: 0 0 auto;
+}
+.week-folder-lbl {
+  font-size: 8px;
+  font-weight: 700;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 2px 1px;
+  border-bottom: 1px solid rgba(0,0,0,0.07);
+  margin-top: 2px;
+  flex: 0 0 auto;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cal-cell.green .week-folder-lbl { color: #4caf50; border-color: rgba(76,175,80,0.2); }
+.cal-cell.yellow .week-folder-lbl { color: #b8960b; border-color: rgba(184,150,11,0.2); }
+
+.week-obj {
+  display: flex;
   align-items: center;
-  gap: 6px;
-  min-height: 0;
-  padding: 3px 6px;
-  border-radius: 5px;
+  gap: 5px;
+  padding: 3px 5px;
+  border-radius: 4px;
   background: rgba(0,0,0,0.04);
+  flex: 0 0 auto;
   overflow: hidden;
 }
 .week-obj.done { background: rgba(0,0,0,0.06); }
-.week-check { font-size: 13px; flex: 0 0 auto; color: #4caf50; }
+.week-check { font-size: 11px; flex: 0 0 auto; color: #4caf50; }
 .cal-cell.green .week-check { color: #2a7a2a; }
 .week-obj-name {
   flex: 1;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   line-height: 1.2;
 }
-.week-obj.done .week-obj-name { text-decoration: line-through; opacity: 0.55; }
-.week-streak { font-size: 12px; font-weight: 700; color: #e06a00; flex: 0 0 auto; white-space: nowrap; }
-.week-no-obj { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #ccc; font-style: italic; }
+.week-obj.done .week-obj-name { text-decoration: line-through; opacity: 0.5; }
+.week-streak { font-size: 11px; font-weight: 700; color: #e06a00; flex: 0 0 auto; white-space: nowrap; }
+.week-empty-col { font-size: 10px; color: #ccc; padding: 4px 2px; font-style: italic; }
+
+/* Month view — two-column mini layout */
+.cal-month-body {
+  display: flex;
+  flex: 1;
+  gap: 2px;
+  min-height: 0;
+  overflow: hidden;
+  width: 100%;
+}
+.cal-month-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  overflow: hidden;
+}
 
 #legend { display: flex; gap: 12px; flex: 0 0 auto; }
 .leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #555; }
@@ -816,45 +882,107 @@ function cellBaseClass(ds) {
   return cls;
 }
 
-function buildMonthCellHTML(ds, dayNum) {
-  let inner = `<span class="cal-day-num">${dayNum}</span>`;
-  if (objectives.length > 0) {
-    const dd = data[ds] || {};
-    const todayStr = dk(new Date());
-    const isFuture = ds > todayStr;
-    objectives.forEach(o => {
-      const done = !isFuture && (dd[o.id] || 0) >= o.target;
-      inner += `<span class="cal-obj-item${done ? ' done' : ''}">${done ? '✓ ' : ''}${esc(o.name)}</span>`;
-    });
+function getFolderGroups(dd, ds) {
+  const todayStr = dk(new Date());
+  const isFuture = ds > todayStr;
+  const groups = [];
+
+  function walk(folderId, folderName) {
+    const objs = folderId === null
+      ? objectives.filter(o => !o.folderId)
+      : objectives.filter(o => o.folderId === folderId);
+    if (objs.length > 0) {
+      groups.push({
+        name: folderName,
+        items: objs.map(o => {
+          const c = (dd[o.id] || 0);
+          const done = !isFuture && c >= o.target;
+          const streak = isFuture ? 0 : getStreakAt(o.id, new Date(ds));
+          return { obj: o, done, streak };
+        })
+      });
+    }
+    folders.filter(f => f.parentId === folderId).forEach(f => walk(f.id, f.name));
   }
-  return `<div class="${cellBaseClass(ds)}">${inner}</div>`;
+
+  walk(null, null);
+  folders.filter(f => !f.parentId).forEach(f => walk(f.id, f.name));
+  return groups;
+}
+
+function buildMonthCellHTML(ds, dayNum) {
+  const dd = data[ds] || {};
+  const todayStr = dk(new Date());
+  const isFuture = ds > todayStr;
+  let doneHTML = '';
+  let todoHTML = '';
+
+  objectives.forEach(o => {
+    const done = !isFuture && (dd[o.id] || 0) >= o.target;
+    const item = `<span class="cal-obj-item${done ? ' done' : ''}">${done ? '✓ ' : ''}${esc(o.name)}</span>`;
+    if (done) doneHTML += item;
+    else todoHTML += item;
+  });
+
+  const body = objectives.length > 0
+    ? `<div class="cal-month-body"><div class="cal-month-col">${doneHTML}</div><div class="cal-month-col">${todoHTML}</div></div>`
+    : '';
+
+  return `<div class="${cellBaseClass(ds)}"><span class="cal-day-num">${dayNum}</span>${body}</div>`;
 }
 
 function buildWeekCellHTML(ds, dayNum, dayOfWeek) {
-  const todayStr = dk(new Date());
-  const isFuture = ds > todayStr;
   const dd = data[ds] || {};
+  const groups = getFolderGroups(dd, ds);
 
-  let inner = `<div class="week-day-hdr">
-    <span class="week-day-name">${WK_NAMES[dayOfWeek]}</span>
-    <span class="week-day-num">${dayNum}</span>
-  </div>`;
+  let doneHTML = '';
+  let todoHTML = '';
 
-  if (objectives.length === 0) {
-    inner += `<div class="week-no-obj">Aucun objectif</div>`;
-  } else {
-    objectives.forEach(o => {
-      const c = dd[o.id] || 0;
-      const done = !isFuture && c >= o.target;
-      const streak = isFuture ? 0 : getStreakAt(o.id, new Date(ds));
-      inner +=
-        `<div class="week-obj${done ? ' done' : ''}">` +
-        (done ? `<span class="week-check">✓</span>` : '') +
-        `<span class="week-obj-name">${esc(o.name)}</span>` +
-        (streak > 0 ? `<span class="week-streak">🔥${streak}</span>` : '') +
-        `</div>`;
-    });
-  }
+  groups.forEach(g => {
+    const doneItems = g.items.filter(x => x.done);
+    const todoItems = g.items.filter(x => !x.done);
+
+    if (doneItems.length > 0) {
+      if (g.name) doneHTML += `<div class="week-folder-lbl">📁 ${esc(g.name)}</div>`;
+      doneItems.forEach(x => {
+        doneHTML +=
+          `<div class="week-obj done">` +
+          `<span class="week-check">✓</span>` +
+          `<span class="week-obj-name">${esc(x.obj.name)}</span>` +
+          (x.streak > 0 ? `<span class="week-streak">🔥${x.streak}</span>` : '') +
+          `</div>`;
+      });
+    }
+
+    if (todoItems.length > 0) {
+      if (g.name) todoHTML += `<div class="week-folder-lbl">📁 ${esc(g.name)}</div>`;
+      todoItems.forEach(x => {
+        todoHTML +=
+          `<div class="week-obj">` +
+          `<span class="week-obj-name">${esc(x.obj.name)}</span>` +
+          (x.streak > 0 ? `<span class="week-streak">🔥${x.streak}</span>` : '') +
+          `</div>`;
+      });
+    }
+  });
+
+  const inner =
+    `<div class="week-day-hdr">
+      <span class="week-day-name">${WK_NAMES[dayOfWeek]}</span>
+      <span class="week-day-num">${dayNum}</span>
+    </div>
+    <div class="week-cols">
+      <div class="week-col">
+        <div class="week-col-hdr">Complété</div>
+        ${doneHTML || '<div class="week-empty-col">—</div>'}
+      </div>
+      <div class="week-col-sep"></div>
+      <div class="week-col">
+        <div class="week-col-hdr">À faire</div>
+        ${todoHTML || '<div class="week-empty-col">—</div>'}
+      </div>
+    </div>`;
+
   return `<div class="${cellBaseClass(ds)} week-cell">${inner}</div>`;
 }
 
