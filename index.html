@@ -588,6 +588,7 @@ let objectives = [];
 let folders = [];
 let data = {};
 let dragObjId = null;
+let dragFolderId = null;
 const collapsedFolders = new Set();
 
 const FR_DAYS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
@@ -721,13 +722,28 @@ function toggleFolder(id) {
   renderObjs();
 }
 
-function dropToFolder(folderId) {
-  if (!dragObjId) return;
-  const obj = objectives.find(o => o.id === dragObjId);
-  if (obj) obj.folderId = folderId || null;
-  dragObjId = null;
-  save();
-  renderObjs();
+function isDescendantOf(nodeId, ancestorId) {
+  if (!nodeId || !ancestorId) return false;
+  const node = folders.find(f => f.id === nodeId);
+  if (!node || !node.parentId) return false;
+  if (node.parentId === ancestorId) return true;
+  return isDescendantOf(node.parentId, ancestorId);
+}
+
+function dropToFolder(targetFolderId) {
+  if (dragFolderId !== null) {
+    if (dragFolderId !== targetFolderId && !isDescendantOf(targetFolderId, dragFolderId)) {
+      const f = folders.find(x => x.id === dragFolderId);
+      if (f) f.parentId = targetFolderId || null;
+    }
+    dragFolderId = null;
+    save(); renderObjs();
+  } else if (dragObjId !== null) {
+    const obj = objectives.find(o => o.id === dragObjId);
+    if (obj) obj.folderId = targetFolderId || null;
+    dragObjId = null;
+    save(); renderObjs();
+  }
 }
 
 // ── OBJECTIVES ──
@@ -774,11 +790,24 @@ function makeFolderNode(folderId, label, icon, depth, canDelete, dd) {
   const hdr = document.createElement('div');
   hdr.className = 'folder-header';
   hdr.innerHTML =
+    (folderId !== null ? `<span class="drag-handle folder-drag-handle">⠿</span>` : '<span style="width:6px"></span>') +
     `<button class="btn-toggle" onclick="toggleFolder('${colKey}')">${collapsed ? '▶' : '▼'}</button>` +
     `<span class="folder-icon">${icon}</span>` +
     `<span class="folder-name">${esc(label)}</span>` +
     (folderId !== null ? `<button class="btn-folder-add" onclick="addFolder('${folderId}')" title="Sous-dossier">+</button>` : '') +
     (canDelete ? `<button class="btn-folder-del" onclick="delFolder('${folderId}')">×</button>` : '');
+
+  if (folderId !== null) {
+    hdr.draggable = true;
+    hdr.addEventListener('dragstart', e => {
+      dragFolderId = folderId;
+      dragObjId = null;
+      e.dataTransfer.effectAllowed = 'move';
+      e.stopPropagation();
+      setTimeout(() => { hdr.style.opacity = '0.45'; }, 0);
+    });
+    hdr.addEventListener('dragend', () => { dragFolderId = null; hdr.style.opacity = ''; });
+  }
   section.appendChild(hdr);
 
   if (!collapsed) {
@@ -799,7 +828,10 @@ function makeFolderNode(folderId, label, icon, depth, canDelete, dd) {
     }
     section.appendChild(objsEl);
 
-    subFolders.forEach(sf => section.appendChild(makeFolderNode(sf.id, sf.name, '📁', depth + 1, true, dd)));
+    // Only named folders have sub-folders; null/"Sans dossier" does not
+    if (folderId !== null) {
+      subFolders.forEach(sf => section.appendChild(makeFolderNode(sf.id, sf.name, '📁', depth + 1, true, dd)));
+    }
   }
 
   return section;
@@ -859,6 +891,29 @@ function delObj(id) {
 }
 
 document.getElementById('inp-name').addEventListener('keydown', e => { if (e.key === 'Enter') addObj(); });
+
+// Drag-scroll: auto-scroll #obj-list when dragging near edges
+(function() {
+  let scrollTimer = null;
+  const stopScroll = () => { if (scrollTimer) { clearInterval(scrollTimer); scrollTimer = null; } };
+
+  document.addEventListener('dragover', e => {
+    const list = document.getElementById('obj-list');
+    if (!list) return;
+    const rect = list.getBoundingClientRect();
+    const zone = 52;
+    stopScroll();
+    if (e.clientY >= rect.top && e.clientY <= rect.bottom) {
+      if (e.clientY < rect.top + zone) {
+        scrollTimer = setInterval(() => { list.scrollTop -= 10; }, 20);
+      } else if (e.clientY > rect.bottom - zone) {
+        scrollTimer = setInterval(() => { list.scrollTop += 10; }, 20);
+      }
+    }
+  });
+  document.addEventListener('dragend', stopScroll);
+  document.addEventListener('drop', stopScroll);
+})();
 
 // ── CALENDAR ──
 function dayStatus(ds) {
