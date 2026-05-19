@@ -187,6 +187,17 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.07em;
 }
+.btn-folder-add {
+  background: none;
+  border: none;
+  color: #3a3a3a;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 0 3px;
+  line-height: 1;
+}
+.btn-folder-add:hover { color: #4a9eff; }
 .btn-folder-del {
   background: none;
   border: none;
@@ -532,6 +543,8 @@ function load() {
   objectives = JSON.parse(localStorage.getItem('obj') || '[]');
   data = JSON.parse(localStorage.getItem('dat') || '{}');
   folders = JSON.parse(localStorage.getItem('folders') || '[]');
+  // migrate: ensure parentId exists on old folders
+  folders.forEach(f => { if (f.parentId === undefined) f.parentId = null; });
 }
 
 // ── AUTH ──
@@ -602,18 +615,23 @@ function getStreakAt(objId, asOf) {
 function getStreak(objId) { return getStreakAt(objId, selectedDate); }
 
 // ── FOLDERS ──
-function addFolder() {
+function addFolder(parentId = null) {
   const name = prompt('Nom du dossier :');
   if (!name || !name.trim()) return;
-  folders.push({ id: Date.now().toString(), name: name.trim() });
+  folders.push({ id: Date.now().toString(), name: name.trim(), parentId: parentId || null });
   save();
   renderObjs();
 }
 
 function delFolder(id) {
-  if (!confirm('Supprimer ce dossier ? Les objectifs seront déplacés dans "Sans dossier".')) return;
+  const folder = folders.find(f => f.id === id);
+  const parentId = folder ? folder.parentId : null;
+  if (!confirm('Supprimer ce dossier ? Le contenu sera déplacé au niveau parent.')) return;
+  // move objectives up
+  objectives.forEach(o => { if (o.folderId === id) o.folderId = parentId; });
+  // move sub-folders up
+  folders.forEach(f => { if (f.parentId === id) f.parentId = parentId; });
   folders = folders.filter(f => f.id !== id);
-  objectives.forEach(o => { if (o.folderId === id) o.folderId = null; });
   save();
   renderObjs();
 }
@@ -655,20 +673,14 @@ function makeObjRow(o, dd) {
   return row;
 }
 
-function makeFolderSection(folderId, label, icon, objs, dd, canDelete) {
+function makeFolderNode(folderId, label, icon, depth, canDelete, dd) {
   const section = document.createElement('div');
   section.className = 'folder-section';
+  if (depth > 0) section.style.marginLeft = (depth * 10) + 'px';
 
-  // Drop zone handlers on the whole section
   section.addEventListener('dragover', e => { e.preventDefault(); section.classList.add('drag-over'); });
-  section.addEventListener('dragleave', e => {
-    if (!section.contains(e.relatedTarget)) section.classList.remove('drag-over');
-  });
-  section.addEventListener('drop', e => {
-    e.preventDefault();
-    section.classList.remove('drag-over');
-    dropToFolder(folderId);
-  });
+  section.addEventListener('dragleave', e => { if (!section.contains(e.relatedTarget)) section.classList.remove('drag-over'); });
+  section.addEventListener('drop', e => { e.preventDefault(); section.classList.remove('drag-over'); dropToFolder(folderId); });
 
   // Header
   const hdr = document.createElement('div');
@@ -676,21 +688,31 @@ function makeFolderSection(folderId, label, icon, objs, dd, canDelete) {
   hdr.innerHTML =
     `<span class="folder-icon">${icon}</span>` +
     `<span class="folder-name">${esc(label)}</span>` +
+    (folderId !== null ? `<button class="btn-folder-add" onclick="addFolder('${folderId}')" title="Sous-dossier">+</button>` : '') +
     (canDelete ? `<button class="btn-folder-del" onclick="delFolder('${folderId}')">×</button>` : '');
   section.appendChild(hdr);
 
-  // Objectives inside
+  // Objectives in this folder
+  const folderObjs = folderId === null
+    ? objectives.filter(o => !o.folderId)
+    : objectives.filter(o => o.folderId === folderId);
+  const subFolders = folders.filter(f => f.parentId === folderId);
+
   const objsEl = document.createElement('div');
   objsEl.className = 'folder-objs';
-  if (objs.length === 0) {
+  if (folderObjs.length === 0 && subFolders.length === 0) {
     const empty = document.createElement('div');
     empty.className = 'folder-empty';
     empty.textContent = 'Glisser un objectif ici';
     objsEl.appendChild(empty);
   } else {
-    objs.forEach(o => objsEl.appendChild(makeObjRow(o, dd)));
+    folderObjs.forEach(o => objsEl.appendChild(makeObjRow(o, dd)));
   }
   section.appendChild(objsEl);
+
+  // Recursive sub-folders
+  subFolders.forEach(sf => section.appendChild(makeFolderNode(sf.id, sf.name, '📁', depth + 1, true, dd)));
+
   return section;
 }
 
@@ -700,21 +722,20 @@ function renderObjs() {
   const dd = data[key] || {};
   el.innerHTML = '';
 
-  if (objectives.length === 0) {
+  if (objectives.length === 0 && folders.length === 0) {
     el.innerHTML = '<div style="font-size:12px;color:#3a3a3a;text-align:center;padding:24px 0;">Aucun objectif.<br>Ajoutez-en un !</div>';
     return;
   }
 
   const unfoldered = objectives.filter(o => !o.folderId);
-  // Show "Sans dossier" only if there are items or no folders exist
   if (unfoldered.length > 0 || folders.length === 0) {
-    el.appendChild(makeFolderSection(null, 'Sans dossier', '📄', unfoldered, dd, false));
+    el.appendChild(makeFolderNode(null, 'Sans dossier', '📄', 0, false, dd));
   }
 
-  folders.forEach(f => {
-    const folderObjs = objectives.filter(o => o.folderId === f.id);
-    el.appendChild(makeFolderSection(f.id, f.name, '📁', folderObjs, dd, true));
-  });
+  // Render only root folders (parentId = null); children render recursively
+  folders.filter(f => !f.parentId).forEach(f =>
+    el.appendChild(makeFolderNode(f.id, f.name, '📁', 0, true, dd))
+  );
 }
 
 function inc(id) {
