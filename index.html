@@ -187,6 +187,7 @@ body {
   align-items: center;
   gap: 5px;
   padding: 4px 6px 4px 2px;
+  border-radius: 5px;
 }
 .folder-icon { font-size: 12px; }
 .folder-name {
@@ -197,6 +198,21 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.07em;
 }
+/* Sub-folder visual distinction */
+.folder-section.subfolder { border-left: 2px solid #2a2a2a; padding-left: 4px; }
+.folder-section.subfolder > .folder-header { background: #161616; border-radius: 0 5px 5px 0; }
+.folder-section.subfolder .folder-name { color: #4a4a4a; font-style: italic; font-size: 9px; }
+.folder-section.subfolder .folder-icon { opacity: 0.6; font-size: 11px; }
+/* Obj view toggle */
+#obj-view-toggle {
+  display: flex;
+  background: #1e1e1e;
+  border: 1px solid #2a2a2a;
+  border-radius: 5px;
+  padding: 2px;
+  gap: 2px;
+}
+#obj-view-toggle .btn-view { padding: 2px 8px; font-size: 11px; }
 .btn-toggle {
   background: none;
   border: none;
@@ -519,6 +535,24 @@ body {
 }
 
 #legend { display: flex; gap: 12px; flex: 0 0 auto; }
+
+/* ── MOBILE ── */
+@media (max-width: 700px) {
+  #app { padding: 10px; gap: 8px; }
+  #main { flex-direction: column; }
+  #left { flex: 0 0 auto; max-height: 45vh; }
+  #right { flex: 1; min-height: 0; }
+  #datebar { padding: 6px 10px; }
+  #date-disp { font-size: 12px; }
+  #cal-days { grid-auto-rows: auto; }
+  .cal-cell { min-height: 52px; }
+  .cal-cell.week-cell { min-height: 120px; }
+  .week-cols { overflow-y: auto; }
+  #legend { gap: 8px; }
+  .leg-item { font-size: 10px; }
+  #obj-view-toggle { display: none; }
+  .btn-add-folder { font-size: 11px; padding: 3px 7px; }
+}
 .leg-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #555; }
 .leg-dot { width: 8px; height: 8px; border-radius: 50%; }
 .leg-dot.green { background: #4caf50; }
@@ -555,7 +589,11 @@ body {
     <div class="panel" id="left">
       <div id="left-top">
         <div class="panel-lbl">Objectifs du jour</div>
-        <button class="btn-add-folder" onclick="addFolder()">📁 Dossier</button>
+        <div id="obj-view-toggle">
+          <button class="btn-view active" id="btn-view-folders" onclick="setObjView('folders')" title="Vue dossiers">📁</button>
+          <button class="btn-view" id="btn-view-flat" onclick="setObjView('flat')" title="Vue plate">☰</button>
+        </div>
+        <button class="btn-add-folder" onclick="addFolder()">+ Dossier</button>
       </div>
       <div id="obj-list"></div>
       <div id="add-form">
@@ -599,6 +637,7 @@ let folders = [];
 let data = {};
 let dragObjId = null;
 let dragFolderId = null;
+let objView = 'folders';
 const collapsedFolders = new Set();
 
 const FR_DAYS = ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
@@ -726,6 +765,13 @@ function delFolder(id) {
   renderObjs();
 }
 
+function setObjView(v) {
+  objView = v;
+  document.getElementById('btn-view-folders').classList.toggle('active', v === 'folders');
+  document.getElementById('btn-view-flat').classList.toggle('active', v === 'flat');
+  renderObjs();
+}
+
 function toggleFolder(id) {
   if (collapsedFolders.has(id)) collapsedFolders.delete(id);
   else collapsedFolders.add(id);
@@ -789,8 +835,8 @@ function makeFolderNode(folderId, label, icon, depth, canDelete, dd) {
   const colKey = folderId === null ? '__root__' : folderId;
 
   const section = document.createElement('div');
-  section.className = 'folder-section';
-  if (depth > 0) section.style.marginLeft = (depth * 10) + 'px';
+  section.className = depth > 0 ? 'folder-section subfolder' : 'folder-section';
+  if (depth > 0) section.style.marginLeft = (depth * 12) + 'px';
 
   section.addEventListener('dragover', e => { e.preventDefault(); section.classList.add('drag-over'); });
   section.addEventListener('dragleave', e => { if (!section.contains(e.relatedTarget)) section.classList.remove('drag-over'); });
@@ -858,11 +904,18 @@ function renderObjs() {
     return;
   }
 
-  if (folders.length === 0) {
+  if (objView === 'flat') {
+    // Flat view: all objectives as simple rows, no folder structure
+    if (objectives.length === 0) {
+      el.innerHTML = '<div style="font-size:12px;color:#3a3a3a;text-align:center;padding:24px 0;">Aucun objectif.</div>';
+      return;
+    }
+    objectives.forEach(o => el.appendChild(makeObjRow(o, dd)));
+  } else if (folders.length === 0) {
     // No named folders — show everything in "Sans dossier"
     el.appendChild(makeFolderNode(null, 'Sans dossier', '📄', 0, false, dd));
   } else {
-    // Named folders exist: show unfoldered objectives as plain rows (drop zone, no header)
+    // Named folders exist: unfoldered objectives as plain drop zone (no header)
     const unfoldered = objectives.filter(o => !o.folderId);
     if (unfoldered.length > 0) {
       const zone = document.createElement('div');
@@ -873,7 +926,7 @@ function renderObjs() {
       unfoldered.forEach(o => zone.appendChild(makeObjRow(o, dd)));
       el.appendChild(zone);
     }
-    // Root folders only — children render recursively inside makeFolderNode
+    // Root folders only — children render recursively
     folders.filter(f => !f.parentId).forEach(f =>
       el.appendChild(makeFolderNode(f.id, f.name, '📁', 0, true, dd))
     );
