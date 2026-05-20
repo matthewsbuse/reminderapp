@@ -69,6 +69,12 @@ body {
 #hdr-title { font-size: 15px; font-weight: 600; color: #fff; letter-spacing: -0.02em; }
 #hdr-logout { font-size: 12px; color: #555; background: none; border: none; cursor: pointer; }
 #hdr-logout:hover { color: #f55; }
+.btn-hdr {
+  font-size: 11px; padding: 3px 9px;
+  background: #222; border: 1px solid #2e2e2e; border-radius: 5px;
+  color: #888; cursor: pointer;
+}
+.btn-hdr:hover { background: #2a2a2a; color: #ccc; }
 
 /* Date bar */
 #datebar {
@@ -575,7 +581,11 @@ body {
 <div id="app">
   <div id="hdr">
     <span id="hdr-title">Objectifs Quotidiens</span>
-    <button id="hdr-logout" onclick="logout()">Déconnexion</button>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <button class="btn-hdr" onclick="exportData()" title="Exporter les données">⬆ Export</button>
+      <button class="btn-hdr" onclick="importData()" title="Importer les données">⬇ Import</button>
+      <button id="hdr-logout" onclick="logout()">Déconnexion</button>
+    </div>
   </div>
 
   <div id="datebar">
@@ -1170,6 +1180,32 @@ function renderCal() {
       html += buildWeekCellHTML(dk(d), d.getDate(), i);
     }
     daysEl.innerHTML = html;
+  }
+}
+
+function exportData() {
+  const payload = JSON.stringify({ obj: objectives, dat: data, folders });
+  navigator.clipboard.writeText(payload).then(() => {
+    alert('✅ Données copiées ! Colle-les dans Import sur l\'autre appareil.');
+  }).catch(() => {
+    prompt('Copie ce texte et colle-le dans Import sur l\'autre appareil :', payload);
+  });
+}
+
+function importData() {
+  const raw = prompt('Colle les données exportées ici :');
+  if (!raw || !raw.trim()) return;
+  try {
+    const parsed = JSON.parse(raw.trim());
+    if (parsed.obj) objectives = parsed.obj;
+    if (parsed.dat) data = parsed.dat;
+    if (parsed.folders) folders = parsed.folders;
+    folders.forEach(f => { if (f.parentId === undefined) f.parentId = null; });
+    save();
+    render();
+    alert('✅ Données importées !');
+  } catch {
+    alert('❌ Format invalide. Assure-toi de coller exactement ce qui a été exporté.');
   }
 }
 
