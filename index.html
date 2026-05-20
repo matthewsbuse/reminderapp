@@ -582,8 +582,7 @@ body {
   <div id="hdr">
     <span id="hdr-title">Objectifs Quotidiens</span>
     <div style="display:flex;gap:6px;align-items:center;">
-      <button class="btn-hdr" onclick="exportData()" title="Exporter les données">⬆ Export</button>
-      <button class="btn-hdr" onclick="importData()" title="Importer les données">⬇ Import</button>
+      <button class="btn-hdr" onclick="shareMobile()" title="Transférer vers mobile">📲 Mobile</button>
       <button id="hdr-logout" onclick="logout()">Déconnexion</button>
     </div>
   </div>
@@ -694,6 +693,7 @@ function login() {
     document.getElementById('login').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
     load();
+    tryAutoImport();
     selectedDate = new Date();
     calYear = selectedDate.getFullYear();
     calMonth = selectedDate.getMonth();
@@ -1183,30 +1183,31 @@ function renderCal() {
   }
 }
 
-function exportData() {
+function shareMobile() {
   const payload = JSON.stringify({ obj: objectives, dat: data, folders });
-  navigator.clipboard.writeText(payload).then(() => {
-    alert('✅ Données copiées ! Colle-les dans Import sur l\'autre appareil.');
+  const encoded = btoa(unescape(encodeURIComponent(payload)));
+  const url = location.origin + location.pathname + '#d=' + encoded;
+  navigator.clipboard.writeText(url).then(() => {
+    alert('✅ Lien copié !\n\nOuvre ce lien sur mobile et connecte-toi — les données s\'importent automatiquement.');
   }).catch(() => {
-    prompt('Copie ce texte et colle-le dans Import sur l\'autre appareil :', payload);
+    prompt('Copie ce lien et ouvre-le sur mobile :', url);
   });
 }
 
-function importData() {
-  const raw = prompt('Colle les données exportées ici :');
-  if (!raw || !raw.trim()) return;
+function tryAutoImport() {
+  const hash = location.hash;
+  if (!hash.startsWith('#d=')) return;
   try {
-    const parsed = JSON.parse(raw.trim());
+    const encoded = hash.slice(3);
+    const raw = decodeURIComponent(escape(atob(encoded)));
+    const parsed = JSON.parse(raw);
     if (parsed.obj) objectives = parsed.obj;
     if (parsed.dat) data = parsed.dat;
     if (parsed.folders) folders = parsed.folders;
     folders.forEach(f => { if (f.parentId === undefined) f.parentId = null; });
     save();
-    render();
-    alert('✅ Données importées !');
-  } catch {
-    alert('❌ Format invalide. Assure-toi de coller exactement ce qui a été exporté.');
-  }
+    history.replaceState(null, '', location.pathname);
+  } catch(e) { /* ignore bad hash */ }
 }
 
 function render() {
