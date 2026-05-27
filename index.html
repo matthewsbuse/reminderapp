@@ -553,22 +553,50 @@ body {
 
 #legend { display: flex; gap: 12px; flex: 0 0 auto; }
 
+#mobile-tabs { display: none; }
+
 /* ── MOBILE ── */
 @media (max-width: 700px) {
-  #app { padding: 10px; gap: 8px; }
-  #main { flex-direction: column; }
-  #left { flex: 0 0 auto; max-height: 45vh; }
-  #right { flex: 1; min-height: 0; }
+  #app { padding: 8px 10px; gap: 7px; }
+  #main { flex: 1; min-height: 0; flex-direction: column; }
   #datebar { padding: 6px 10px; }
-  #date-disp { font-size: 12px; }
-  #cal-days { grid-auto-rows: auto; }
-  .cal-cell { min-height: 52px; }
-  .cal-cell.week-cell { min-height: 120px; }
-  .week-cols { overflow-y: auto; }
+  #date-disp { font-size: 13px; }
   #legend { gap: 8px; }
-  .leg-item { font-size: 10px; }
+  .leg-item { font-size: 11px; }
   #obj-view-toggle { display: none; }
-  .btn-add-folder { font-size: 11px; padding: 3px 7px; }
+  .btn-add-folder { font-size: 12px; padding: 4px 8px; }
+
+  /* Tabs */
+  #mobile-tabs {
+    display: flex;
+    gap: 0;
+    background: #1a1a1a;
+    border: 1px solid #222;
+    border-radius: 8px;
+    padding: 3px;
+    flex: 0 0 auto;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 9px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: #555;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .tab-btn.active { background: #2a2a2a; color: #ddd; }
+
+  /* Panels: each takes full remaining height when active */
+  #left, #right { flex: 1; min-height: 0; max-height: none; }
+  #left.tab-hidden, #right.tab-hidden { display: none; }
+
+  /* Calendar month cells */
+  #cal-days { grid-auto-rows: auto; }
+  .cal-cell { min-height: 58px; }
+  .cal-cell.week-cell { min-height: 120px; }
 
   /* Week view: 1 day full-width stacked */
   #cal-days.week-view {
@@ -654,6 +682,11 @@ body {
     <button class="btn-today" onclick="goToday()">Aujourd'hui</button>
   </div>
 
+  <div id="mobile-tabs">
+    <button id="tab-objs" class="tab-btn active" onclick="setMobileTab('objs')">&#128203; Objectifs</button>
+    <button id="tab-cal" class="tab-btn" onclick="setMobileTab('cal')">&#128197; Calendrier</button>
+  </div>
+
   <div id="main">
     <div class="panel" id="left">
       <div id="left-top">
@@ -709,6 +742,7 @@ let dragFolderId = null;
 let touchActive = false;
 let touchGhost = null;
 let touchDragSourceEl = null;
+let mobileTab = 'objs';
 let objView = 'folders';
 const collapsedFolders = new Set();
 
@@ -1355,10 +1389,20 @@ function tryAutoImport() {
   } catch(e) { /* ignore bad hash */ }
 }
 
+function setMobileTab(tab) {
+  mobileTab = tab;
+  if (window.innerWidth > 700) return;
+  document.getElementById('left').classList.toggle('tab-hidden', tab !== 'objs');
+  document.getElementById('right').classList.toggle('tab-hidden', tab !== 'cal');
+  document.getElementById('tab-objs').classList.toggle('active', tab === 'objs');
+  document.getElementById('tab-cal').classList.toggle('active', tab === 'cal');
+}
+
 function render() {
   renderDateBar();
   renderObjs();
   renderCal();
+  setMobileTab(mobileTab);
 }
 </script>
 </body>
