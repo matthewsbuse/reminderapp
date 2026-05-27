@@ -306,6 +306,17 @@ body {
   flex: 0 0 auto;
 }
 .btn-inc:hover, .btn-dec:hover { background: #333; color: #ddd; }
+.btn-edit {
+  width: 20px; height: 20px;
+  background: transparent;
+  border: none;
+  color: #3a3a3a;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  flex: 0 0 auto;
+}
+.btn-edit:hover { color: #4a9eff; }
 .btn-del {
   width: 20px; height: 20px;
   background: transparent;
@@ -888,6 +899,7 @@ function makeObjRow(o, dd) {
     `<span class="obj-cnt${done ? ' done' : ''}">${c}&thinsp;/&thinsp;${o.target}</span>` +
     `<button class="btn-dec" onclick="dec('${o.id}')">−</button>` +
     `<button class="btn-inc" onclick="inc('${o.id}')">+</button>` +
+    `<button class="btn-edit" onclick="editObj('${o.id}')">✎</button>` +
     `<button class="btn-del" onclick="delObj('${o.id}')">×</button>`;
   addTouchDragToHandle(row.querySelector('.drag-handle'), row, () => { dragObjId = o.id; dragFolderId = null; });
   return row;
@@ -1021,6 +1033,19 @@ function addObj() {
   objectives.push({ id: Date.now().toString(), name: n, target: t, folderId: null });
   document.getElementById('inp-name').value = '';
   document.getElementById('inp-target').value = '1';
+  save(); render();
+}
+
+function editObj(id) {
+  const obj = objectives.find(o => o.id === id);
+  if (!obj) return;
+  const name = prompt('Nom :', obj.name);
+  if (name === null) return;
+  if (!name.trim()) return;
+  const target = parseInt(prompt('Cible :', obj.target));
+  if (isNaN(target) || target < 1) return;
+  obj.name = name.trim();
+  obj.target = target;
   save(); render();
 }
 
