@@ -554,6 +554,7 @@ body {
 #legend { display: flex; gap: 12px; flex: 0 0 auto; }
 
 #mobile-tabs { display: none; }
+.btn-import-mobile { display: none; }
 
 /* ── MOBILE ── */
 @media (max-width: 700px) {
@@ -565,6 +566,8 @@ body {
   .leg-item { font-size: 11px; }
   #obj-view-toggle { display: none; }
   .btn-add-folder { font-size: 12px; padding: 4px 8px; }
+
+  .btn-import-mobile { display: block !important; }
 
   /* Tabs */
   #mobile-tabs {
@@ -671,6 +674,7 @@ body {
     <span id="hdr-title">Objectifs Quotidiens</span>
     <div style="display:flex;gap:6px;align-items:center;">
       <button class="btn-hdr" onclick="shareMobile()" title="Transférer vers mobile">📲 Mobile</button>
+      <button class="btn-hdr btn-import-mobile" onclick="importFromLink()" title="Importer les données">📥 Importer</button>
       <button id="hdr-logout" onclick="logout()">Déconnexion</button>
     </div>
   </div>
@@ -1371,6 +1375,25 @@ function shareMobile() {
   }).catch(() => {
     prompt('Copie ce lien et ouvre-le sur mobile :', url);
   });
+}
+
+function importFromLink() {
+  const input = prompt('Colle le lien 📲 Mobile (copié depuis l\'ordi) :');
+  if (!input) return;
+  try {
+    const hashPart = input.includes('#d=') ? input.split('#d=')[1] : input.trim();
+    const raw = decodeURIComponent(escape(atob(hashPart)));
+    const parsed = JSON.parse(raw);
+    if (parsed.obj) objectives = parsed.obj;
+    if (parsed.dat) data = parsed.dat;
+    if (parsed.folders) folders = parsed.folders;
+    folders.forEach(f => { if (f.parentId === undefined) f.parentId = null; });
+    save();
+    render();
+    alert('✅ Données importées !');
+  } catch(e) {
+    alert('❌ Lien invalide. Recopie le lien complet depuis 📲 Mobile.');
+  }
 }
 
 function tryAutoImport() {
