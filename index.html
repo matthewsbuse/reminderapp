@@ -646,6 +646,9 @@ let folders = [];
 let data = {};
 let dragObjId = null;
 let dragFolderId = null;
+let touchActive = false;
+let touchGhost = null;
+let touchDragSourceEl = null;
 let objView = 'folders';
 const collapsedFolders = new Set();
 
@@ -837,6 +840,7 @@ function makeObjRow(o, dd) {
     `<button class="btn-dec" onclick="dec('${o.id}')">−</button>` +
     `<button class="btn-inc" onclick="inc('${o.id}')">+</button>` +
     `<button class="btn-del" onclick="delObj('${o.id}')">×</button>`;
+  addTouchDragToHandle(row.querySelector('.drag-handle'), row, () => { dragObjId = o.id; dragFolderId = null; });
   return row;
 }
 
@@ -848,6 +852,7 @@ function makeFolderNode(folderId, label, icon, depth, canDelete, dd) {
   section.className = depth > 0 ? 'folder-section subfolder' : 'folder-section';
   if (depth > 0) section.style.marginLeft = (depth * 12) + 'px';
 
+  section.dataset.folderId = folderId === null ? '' : folderId;
   section.addEventListener('dragover', e => { e.preventDefault(); section.classList.add('drag-over'); });
   section.addEventListener('dragleave', e => { if (!section.contains(e.relatedTarget)) section.classList.remove('drag-over'); });
   section.addEventListener('drop', e => { e.preventDefault(); section.classList.remove('drag-over'); dropToFolder(folderId); });
@@ -873,6 +878,8 @@ function makeFolderNode(folderId, label, icon, depth, canDelete, dd) {
       setTimeout(() => { hdr.style.opacity = '0.45'; }, 0);
     });
     hdr.addEventListener('dragend', () => { dragFolderId = null; hdr.style.opacity = ''; });
+    const fHandle = hdr.querySelector('.folder-drag-handle');
+    if (fHandle) addTouchDragToHandle(fHandle, hdr, () => { dragFolderId = folderId; dragObjId = null; });
   }
   section.appendChild(hdr);
 
@@ -930,6 +937,7 @@ function renderObjs() {
     if (unfoldered.length > 0) {
       const zone = document.createElement('div');
       zone.className = 'unfoldered-zone';
+      zone.dataset.folderId = '';
       zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
       zone.addEventListener('dragleave', e => { if (!zone.contains(e.relatedTarget)) zone.classList.remove('drag-over'); });
       zone.addEventListener('drop', e => { e.preventDefault(); zone.classList.remove('drag-over'); dropToFolder(null); });
@@ -998,6 +1006,66 @@ document.getElementById('inp-name').addEventListener('keydown', e => { if (e.key
   document.addEventListener('dragend', stopScroll);
   document.addEventListener('drop', stopScroll);
 })();
+
+// ── TOUCH DRAG & DROP ──
+function clearTouchDrag() {
+  if (touchGhost) { touchGhost.remove(); touchGhost = null; }
+  if (touchDragSourceEl) { touchDragSourceEl.style.opacity = ''; touchDragSourceEl = null; }
+  document.querySelectorAll('.drag-over').forEach(x => x.classList.remove('drag-over'));
+  touchActive = false;
+}
+
+function addTouchDragToHandle(handle, dragEl, onStart) {
+  handle.addEventListener('touchstart', e => {
+    e.stopPropagation();
+    onStart();
+    touchActive = true;
+    touchDragSourceEl = dragEl;
+    dragEl.style.opacity = '0.35';
+    const rect = dragEl.getBoundingClientRect();
+    const touch = e.touches[0];
+    touchGhost = dragEl.cloneNode(true);
+    touchGhost.style.cssText = [
+      'position:fixed', 'pointer-events:none', 'z-index:9999',
+      `width:${rect.width}px`, `left:${rect.left}px`, `top:${rect.top}px`,
+      'opacity:0.8', 'box-shadow:0 4px 16px rgba(0,0,0,0.6)', 'border-radius:6px'
+    ].join(';');
+    touchGhost._ox = touch.clientX - rect.left;
+    touchGhost._oy = touch.clientY - rect.top;
+    document.body.appendChild(touchGhost);
+  }, { passive: true });
+}
+
+document.addEventListener('touchmove', e => {
+  if (!touchActive || !touchGhost) return;
+  e.preventDefault();
+  const touch = e.touches[0];
+  touchGhost.style.left = (touch.clientX - touchGhost._ox) + 'px';
+  touchGhost.style.top  = (touch.clientY - touchGhost._oy) + 'px';
+  touchGhost.style.visibility = 'hidden';
+  const under = document.elementFromPoint(touch.clientX, touch.clientY);
+  touchGhost.style.visibility = '';
+  document.querySelectorAll('.drag-over').forEach(x => x.classList.remove('drag-over'));
+  const zone = under && under.closest('[data-folder-id]');
+  if (zone) zone.classList.add('drag-over');
+}, { passive: false });
+
+document.addEventListener('touchend', e => {
+  if (!touchActive) return;
+  const touch = e.changedTouches[0];
+  if (touchGhost) touchGhost.style.visibility = 'hidden';
+  const under = document.elementFromPoint(touch.clientX, touch.clientY);
+  if (touchGhost) touchGhost.style.visibility = '';
+  const zone = under && under.closest('[data-folder-id]');
+  if (zone) {
+    const fId = zone.dataset.folderId === '' ? null : zone.dataset.folderId;
+    dropToFolder(fId);
+  } else {
+    dragObjId = null;
+    dragFolderId = null;
+  }
+  clearTouchDrag();
+}, { passive: true });
 
 // ── CALENDAR ──
 function dayStatus(ds) {
